@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Prompt d'Image</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .section-title {
+            color: #764ba2;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::before {
+            content: "✨";
+            font-size: 1.2em;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .hint {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .generate-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .result {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-title {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .prompt-output {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .copy-btn {
+            margin-top: 15px;
+            padding: 12px 30px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+            transform: scale(1.05);
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Générateur de Prompt d'Image</h1>
+        <p class="subtitle">Remplissez les champs ci-dessous pour créer un prompt détaillé et optimisé</p>
+
+        <form id="promptForm">
+            <!-- Sujet principal -->
+            <div class="section">
+                <h2 class="section-title">Sujet Principal</h2>
+                <label for="subject">Que voulez-vous voir dans l'image ?</label>
+                <input type="text" id="subject" placeholder="Ex: un chat astronaute, une ville futuriste, un portrait de femme...">
+                <p class="hint">Soyez précis sur le sujet principal de votre image</p>
+            </div>
+
+            <!-- Persona / Point de vue -->
+            <div class="section">
+                <h2 class="section-title">Persona / Point de vue</h2>
+                <label for="persona">Qui observe ou réalise cette image ?</label>
+                <select id="persona">
+                    <option value="">-- Choisir --</option>
+                    <option value="photographe professionnel">Photographe professionnel</option>
+                    <option value="artiste peintre">Artiste peintre</option>
+                    <option value="illustrateur">Illustrateur</option>
+                    <option value="designer 3D">Designer 3D</option>
+                    <option value="réalisateur de cinéma">Réalisateur de cinéma</option>
+                    <option value="architecte">Architecte</option>
+                    <option value="custom">Personnalisé</option>
+                </select>
+                <input type="text" id="customPersona" placeholder="Entrez votre persona personnalisé" style="margin-top: 10px; display: none;">
+                <p class="hint">Le point de vue influence le style et l'approche de l'image</p>
+            </div>
+
+            <!-- Description détaillée -->
+            <div class="section">
+                <h2 class="section-title">Description Détaillée</h2>
+                <label for="description">Décrivez les détails importants</label>
+                <textarea id="description" placeholder="Ex: cheveux longs roux, yeux verts, sourire mystérieux, vêtements élégants..."></textarea>
+                <p class="hint">Ajoutez des détails sur les couleurs, formes, textures, émotions...</p>
+            </div>
+
+            <!-- Style artistique -->
+            <div class="section">
+                <h2 class="section-title">Style Artistique</h2>
+                <div class="grid">
+                    <div>
+                        <label for="style">Style principal</label>
+                        <select id="style">
+                            <option value="">-- Choisir --</option>
+                            <option value="réaliste photographique">Réaliste / Photographique</option>
+                            <option value="hyperréaliste">Hyperréaliste</option>
+                            <option value="peinture à l'huile">Peinture à l'huile</option>
+                            <option value="aquarelle">Aquarelle</option>
+                            <option value="style anime">Style Anime</option>
+                            <option value="art digital">Art digital</option>
+                            <option value="style cartoon">Cartoon</option>
+                            <option value="art conceptuel">Art conceptuel</option>
+                            <option value="cyberpunk">Cyberpunk</option>
+                            <option value="steampunk">Steampunk</option>
+                            <option value="minimaliste">Minimaliste</option>
+                            <option value="surréaliste">Surréaliste</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="artistReference">Référence artistique (optionnel)</label>
+                        <input type="text" id="artistReference" placeholder="Ex: style de Monet, Hayao Miyazaki...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ambiance et éclairage -->
+            <div class="section">
+                <h2 class="section-title">Ambiance & Éclairage</h2>
+                <div class="grid">
+                    <div>
+                        <label for="mood">Ambiance</label>
+                        <select id="mood">
+                            <option value="">-- Choisir --</option>
+                            <option value="joyeuse et lumineuse">Joyeuse et lumineuse</option>
+                            <option value="sombre et mystérieuse">Sombre et mystérieuse</option>
+                            <option value="mélancolique">Mélancolique</option>
+                            <option value="dramatique">Dramatique</option>
+                            <option value="paisible et sereine">Paisible et sereine</option>
+                            <option value="énergique et dynamique">Énergique et dynamique</option>
+                            <option value="romantique">Romantique</option>
+                            <option value="épique">Épique</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="lighting">Éclairage</label>
+                        <select id="lighting">
+                            <option value="">-- Choisir --</option>
+                            <option value="lumière naturelle">Lumière naturelle</option>
+                            <option value="golden hour">Golden hour</option>
+                            <option value="lumière de studio">Lumière de studio</option>
+                            <option value="contre-jour">Contre-jour</option>
+                            <option value="éclairage cinématique">Éclairage cinématique</option>
+                            <option value="néons">Néons</option>
+                            <option value="clair de lune">Clair de lune</option>
+                            <option value="éclairage volumétrique">Éclairage volumétrique</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Composition -->
+            <div class="section">
+                <h2 class="section-title">Composition & Cadrage</h2>
+                <div class="grid">
+                    <div>
+                        <label for="angle">Angle de vue</label>
+                        <select id="angle">
+                            <option value="">-- Choisir --</option>
+                            <option value="vue de face">Vue de face</option>
+                            <option value="profil">Profil</option>
+                            <option value="vue aérienne">Vue aérienne</option>
+                            <option value="contre-plongée">Contre-plongée</option>
+                            <option value="plongée">Plongée</option>
+                            <option value="vue à hauteur d'œil">Vue à hauteur d'œil</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="framing">Cadrage</label>
+                        <select id="framing">
+                            <option value="">-- Choisir --</option>
+                            <option value="gros plan">Gros plan</option>
+                            <option value="plan rapproché">Plan rapproché</option>
+                            <option value="plan moyen">Plan moyen</option>
+                            <option value="plan américain">Plan américain</option>
+                            <option value="plan large">Plan large</option>
+                            <option value="plan d'ensemble">Plan d'ensemble</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Qualité et paramètres techniques -->
+            <div class="section">
+                <h2 class="section-title">Qualité & Paramètres</h2>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="highQuality" checked>
+                        Haute qualité
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="detailedTextures">
+                        Textures détaillées
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sharpFocus">
+                        Mise au point nette
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="hdr">
+                        HDR
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="8k">
+                        Résolution 8K
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" class="generate-btn">🚀 Générer le Prompt</button>
+        </form>
+
+        <div class="result" id="result">
+            <h2 class="result-title">✨ Votre Prompt Optimisé</h2>
+            <div class="prompt-output" id="promptOutput"></div>
+            <button class="copy-btn" onclick="copyPrompt()">📋 Copier le Prompt</button>
+        </div>
+    </div>
+
+    <script>
+        const personaSelect = document.getElementById('persona');
+        const customPersonaInput = document.getElementById('customPersona');
+
+        personaSelect.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                customPersonaInput.style.display = 'block';
+            } else {
+                customPersonaInput.style.display = 'none';
+            }
+        });
+
+        document.getElementById('promptForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            generatePrompt();
+        });
+
+        function generatePrompt() {
+            const subject = document.getElementById('subject').value;
+            const persona = document.getElementById('persona').value === 'custom' 
+                ? document.getElementById('customPersona').value 
+                : document.getElementById('persona').value;
+            const description = document.getElementById('description').value;
+            const style = document.getElementById('style').value;
+            const artistReference = document.getElementById('artistReference').value;
+            const mood = document.getElementById('mood').value;
+            const lighting = document.getElementById('lighting').value;
+            const angle = document.getElementById('angle').value;
+            const framing = document.getElementById('framing').value;
+
+            const qualityTags = [];
+            if (document.getElementById('highQuality').checked) qualityTags.push('haute qualité');
+            if (document.getElementById('detailedTextures').checked) qualityTags.push('textures détaillées');
+            if (document.getElementById('sharpFocus').checked) qualityTags.push('mise au point nette');
+            if (document.getElementById('hdr').checked) qualityTags.push('HDR');
+            if (document.getElementById('8k').checked) qualityTags.push('8K');
+
+            let prompt = '';
+
+            // Construction du prompt
+            if (subject) {
+                prompt += subject;
+            }
+
+            if (description) {
+                prompt += ', ' + description;
+            }
+
+            if (framing) {
+                prompt += ', ' + framing;
+            }
+
+            if (angle) {
+                prompt += ', ' + angle;
+            }
+
+            if (lighting) {
+                prompt += ', ' + lighting;
+            }
+
+            if (mood) {
+                prompt += ', ambiance ' + mood;
+            }
+
+            if (style) {
+                prompt += ', ' + style;
+            }
+
+            if (artistReference) {
+                prompt += ', inspiré par ' + artistReference;
+            }
+
+            if (persona) {
+                prompt += ', du point de vue d\'un ' + persona;
+            }
+
+            if (qualityTags.length > 0) {
+                prompt += ', ' + qualityTags.join(', ');
+            }
+
+            // Affichage du résultat
+            const resultDiv = document.getElementById('result');
+            const outputDiv = document.getElementById('promptOutput');
+            
+            outputDiv.textContent = prompt || 'Veuillez remplir au moins le sujet principal pour générer un prompt.';
+            resultDiv.classList.add('show');
+            
+            // Scroll vers le résultat
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function copyPrompt() {
+            const promptText = document.getElementById('promptOutput').textContent;
+            navigator.clipboard.writeText(promptText).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copié !';
+                btn.style.background = '#28a745';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#28a745';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
